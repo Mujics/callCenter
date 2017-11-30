@@ -5,6 +5,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -50,7 +52,8 @@ public class Dispatcher {
 	// --------------- EMPLOYEES ---------------
 	
 	public void dispatchCall() {
-		Runnable runnable = () -> {
+		ExecutorService executorService = Executors.newFixedThreadPool(10);
+		executorService.execute(() -> {
 			Employee employee = availableEmployee();
 			Call call = waitingCalls.poll();
 			// Verificar anttes de scar una call que tengo un empleado para atenderla
@@ -68,9 +71,8 @@ public class Dispatcher {
 		        e.printStackTrace();
 		        // call o employee null
 		    }
-		};
-		Thread thread = new Thread(runnable);
-		thread.start();
+		});
+		executorService.shutdown();
 	}
 	
 	public Employee availableEmployee() {
