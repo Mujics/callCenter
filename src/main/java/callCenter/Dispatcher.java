@@ -52,18 +52,17 @@ public class Dispatcher {
 	// --------------- EMPLOYEES ---------------
 	
 	public void dispatchCall() {
-		ExecutorService executorService = Executors.newFixedThreadPool(10);
-		executorService.execute(() -> {
+		Runnable runnable = () -> {
 			Employee employee = availableEmployee();
 			Call call = waitingCalls.poll();
 			// Verificar anttes de scar una call que tengo un empleado para atenderla
 		    try {
-		    	System.out.println("EMPLOYEE-" + employee.getName());
+		    	System.out.println("ID" + Thread.currentThread().getId() + ", EMPLOYEE-" + employee.getName());
 		    	if ( call == null ) {
-		    		System.out.println("CALL ES NULL");
+		    		System.out.println("ID" + Thread.currentThread().getId() + ", CALL ES NULL");
 		    		return;
 		    	} else {
-		    		System.out.println("CALL-" + call.getCaller());	
+		    		System.out.println("ID" + Thread.currentThread().getId() + ",CALL-" + call.getCaller());	
 		    	}
 		        employee.handleCall(call);
 		    }
@@ -71,18 +70,25 @@ public class Dispatcher {
 		        e.printStackTrace();
 		        // call o employee null
 		    }
-		});
+		};
+		ExecutorService executorService = Executors.newFixedThreadPool(10);
+		for(int i =0; i <6; i++){   
+			executorService.execute(runnable);
+		}
 		executorService.shutdown();
 	}
 	
 	public Employee availableEmployee() {
 		for (Employee operator : operators) {
+			System.out.println("ID" + Thread.currentThread().getId() + ", Finding operator, operator " + operator.getName() + "...available: " + operator.isFree() );
 			if ( operator.isFree() ) { return operator; }
 		}
 		for (Employee supervisor : supervisors) {
+			System.out.println("ID" + Thread.currentThread().getId() + ", Finding supervisor, supervisor " + supervisor.getName() + "...available: " + supervisor.isFree() );
 			if ( supervisor.isFree() ) { return supervisor; }
 		}
 		for (Employee director: directors) {
+			System.out.println("ID" + Thread.currentThread().getId() + ",Finding director, director " + director.getName() + "...available: " + director.isFree() );
 			if ( director.isFree() ) { return director; }
 		}
 		//throw new RuntimeErrorException(null, "No emplyee available");
