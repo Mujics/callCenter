@@ -49,6 +49,12 @@ public class Dispatcher {
 	public void addDirectors(Director director) {
 		directors.add(director);
 	}
+	
+	public void resetEmployees() {
+		operators = new CopyOnWriteArrayList<Operator>();
+		supervisors = new CopyOnWriteArrayList<Supervisor>();
+		directors = new CopyOnWriteArrayList<Director>();
+	}
 	// --------------- EMPLOYEES ---------------
 	
 	static Semaphore semaphore = new Semaphore(1);
@@ -57,7 +63,9 @@ public class Dispatcher {
 		Runnable runnable = () -> {
 			Employee employee;
 			Call call = waitingCalls.poll();
+			// Verrificar que puede no haber mas calls
 			// Verificar anttes de scar una call que tengo un empleado para atenderla
+			// si no hay empleado hago un return y la llamada queda en espera
 		    try {
 		    	employee = availableEmployee();
 		    	System.out.println("ID" + Thread.currentThread().getId() + ", EMPLOYEE-" + employee.getName());
