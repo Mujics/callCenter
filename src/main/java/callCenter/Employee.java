@@ -14,7 +14,7 @@ public abstract class Employee {
 		this.free = true;
 	}
 	
-	public boolean isFree() {
+	public synchronized boolean isFree() {
 		return free;
 	}
 	
@@ -22,12 +22,11 @@ public abstract class Employee {
 		return name;
 	}
 	
-	public void makeUnavailable( ) { free = false; }
-	
-	public void makeAvailable( ) { free = true; }
+	public synchronized void makeUnavailable( ) { free = false; }
+
+	public synchronized void makeAvailable( ) { free = true; }
 	
 	public void handleCall(Call call) throws InterruptedException {
-		this.makeUnavailable();
 		int callDuration = call.getCallDuration();
 		System.out.println("ID" + Thread.currentThread().getId() + ", Calling in progress" + String.join("", Collections.nCopies(callDuration, ".")));
 		//System.out.println(greetingMessage + call.getCaller() + " how can i help you with " + call.getSubject());

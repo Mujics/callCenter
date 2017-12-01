@@ -1,18 +1,12 @@
 package callCenter;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-
-import javax.management.RuntimeErrorException;
 
 public class Dispatcher {
 	// --------------- SINGLETON ---------------
@@ -79,7 +73,7 @@ public class Dispatcher {
 		
 		// Assigning  the task to each thread
 		ExecutorService executorService = Executors.newFixedThreadPool(10);
-		for(int i =0; i <6; i++){   
+		for(int i = 0; i < 6; i++){   
 			executorService.execute(runnable);
 		}
 		executorService.shutdown();
@@ -87,31 +81,28 @@ public class Dispatcher {
 	
 	public Employee availableEmployee() throws InterruptedException {
 		semaphore.acquire();
-		printEmployeeArray(operators);
-		printEmployeeArray(supervisors);
-		printEmployeeArray(directors);
 		for (Employee operator : operators) {
 			System.out.println("ID" + Thread.currentThread().getId() + ", Finding operator, operator " + operator.getName() + "...available: " + operator.isFree() );
 			if ( operator.isFree() ) {
-				Operator remove = operators.remove(operators.indexOf(operator));
+				operator.makeUnavailable();
 				semaphore.release(); 
-				return remove; 
+				return operator; 
 			}
 		}
 		for (Employee supervisor : supervisors) {
 			System.out.println("ID" + Thread.currentThread().getId() + ", Finding supervisor, supervisor " + supervisor.getName() + "...available: " + supervisor.isFree() );
 			if ( supervisor.isFree() ) { 
-				Supervisor remove = supervisors.remove(supervisors.indexOf(supervisor));
+				supervisor.makeUnavailable();
 				semaphore.release(); 
-				return remove;  
+				return supervisor;  
 			}
 		}
 		for (Employee director: directors) {
 			System.out.println("ID" + Thread.currentThread().getId() + ",Finding director, director " + director.getName() + "...available: " + director.isFree() );
 			if ( director.isFree() ) { 
-				Director remove = directors.remove(directors.indexOf(director));
+				director.makeUnavailable();
 				semaphore.release(); 
-				return remove;   
+				return director;   
 			}
 		}
 		//throw new RuntimeErrorException(null, "No emplyee available");
@@ -122,10 +113,13 @@ public class Dispatcher {
 	
 	public void printEmployeeArray(List<? extends Employee> employees) {
 		StringBuilder sb = new StringBuilder();
+		sb.append("ID" + Thread.currentThread().getId() + ", ");
 		for (Employee employee : employees) {
 			sb.append(employee.getName());
 			sb.append(" - ");
+			sb.append("Free: ");
+			sb.append(employee.isFree() + ", ");
 		}
-		System.out.println(sb.append("ID" + Thread.currentThread().getId() + ", ").toString());
+		System.out.println(sb.toString());
 	}
 }
