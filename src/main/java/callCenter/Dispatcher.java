@@ -26,6 +26,10 @@ public class Dispatcher {
 	public void addCallToWaitingList(Call call) {
 		waitingCalls.add(call);
 	}
+	
+	public BlockingQueue<Call> getWaitingCalls() {
+		return waitingCalls;
+	}
 	// --------------- CALLS---------------
 
 	// --------------- EMPLOYEES ---------------

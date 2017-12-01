@@ -29,7 +29,7 @@ public class DispatcherTest {
 	}
 
 	@Test
-	public void TenCallDispatcherTest() {
+	public void WaitingCallListShouldBeEmptyAfterDispatch() {
 		Call call1 = new Call("Juan", "Descontento con el servicio");
 		Call call2 = new Call("Pablo", "Consulta Tecnica");
 		Call call3 = new Call("Lucas", "Consulta Tecnica 2");
@@ -44,13 +44,13 @@ public class DispatcherTest {
 		dispatcher.addCallToWaitingList(call5);
 		dispatcher.addCallToWaitingList(call6);
 		dispatcher.dispatchCall();
-		dispatcher.dispatchCall();
-		dispatcher.dispatchCall();
-		dispatcher.dispatchCall();
-		dispatcher.dispatchCall();
-		dispatcher.dispatchCall();
-		boolean dispatcherIsFree = dispatcher.operators.get(0).isFree();
-		assertFalse(dispatcherIsFree);
+		try {
+			Thread.sleep(2000);
+			boolean waitingCallIsEmpty = dispatcher.getWaitingCalls().isEmpty();
+			assertTrue(waitingCallIsEmpty);
+		} catch (InterruptedException e) {
+			fail("Exception: " + e);
+		}
 	}
 
 }
