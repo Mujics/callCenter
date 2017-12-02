@@ -1,12 +1,14 @@
 package callCenter;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 public class Dispatcher {
 	// --------------- SINGLETON ---------------
@@ -21,7 +23,7 @@ public class Dispatcher {
 	 private Dispatcher() {} 
 	// --------------- SINGLETON ---------------
 	// --------------- CALLS---------------
-	private BlockingQueue<Call> waitingCalls = new LinkedBlockingQueue<Call>();;
+	private BlockingQueue<Call> waitingCalls = new LinkedBlockingQueue<Call>();
 	
 	public void addCallToWaitingList(Call call) {
 		waitingCalls.add(call);
@@ -30,108 +32,101 @@ public class Dispatcher {
 	public BlockingQueue<Call> getWaitingCalls() {
 		return waitingCalls;
 	}
+	
+	public void resetWaitingCalls() {
+		waitingCalls = new LinkedBlockingQueue<Call>();
+	}
 	// --------------- CALLS---------------
 
 	// --------------- EMPLOYEES ---------------
-	// Cambiar a una qeue
-	public List<Operator> operators = new CopyOnWriteArrayList<Operator>();
-	public List<Supervisor> supervisors = new CopyOnWriteArrayList<Supervisor>();
-	public List<Director> directors = new CopyOnWriteArrayList<Director>();
-	
-	public void addOperator(Operator operator) {
-		operators.add(operator);
-	}
-	
-	public void addSupervisor(Supervisor supervisor) {
-		supervisors.add(supervisor);
-	}
-	
-	public void addDirectors(Director director) {
-		directors.add(director);
+	public List<Employee> employees = new CopyOnWriteArrayList<Employee>();
+
+	public void addEmployee(Employee employee) {
+		employees.add(employee);
 	}
 	
 	public void resetEmployees() {
-		operators = new CopyOnWriteArrayList<Operator>();
-		supervisors = new CopyOnWriteArrayList<Supervisor>();
-		directors = new CopyOnWriteArrayList<Director>();
+		employees = new CopyOnWriteArrayList<Employee>();
 	}
 	// --------------- EMPLOYEES ---------------
 	
-	static Semaphore semaphore = new Semaphore(1);
+	// Iterates over the waiting call list until there all handle
+	public void dispatchLoop() {
+		while ( !waitingCalls.isEmpty() ) {
+			dispatchCall();
+		}
+	}
 	
+	static Semaphore semaphore = new Semaphore(1);
+	public static final int DISPATCHER_THREADS = 10;
+
+	// Assigns a call to an available employee, handles 10 calls concurrently 
+	// via a ExecutorService with a 10 thread pool
 	public void dispatchCall() {
 		Runnable runnable = () -> {
-			Employee employee;
-			Call call = waitingCalls.poll();
-			// Verrificar que puede no haber mas calls
-			// Verificar anttes de scar una call que tengo un empleado para atenderla
-			// si no hay empleado hago un return y la llamada queda en espera
-		    try {
-		    	employee = availableEmployee();
-		    	System.out.println("ID" + Thread.currentThread().getId() + ", EMPLOYEE-" + employee.getName());
-		    	if ( call == null ) {
-		    		System.out.println("ID" + Thread.currentThread().getId() + ", CALL ES NULL");
-		    		return;
-		    	} else {
-		    		System.out.println("ID" + Thread.currentThread().getId() + ",CALL-" + call.getCaller());	
-		    	}
-		        employee.handleCall(call);
-		    }
-		    catch (InterruptedException e) {
-		        e.printStackTrace();
-		        // call o employee null
-		    }
+			try {
+				Employee employee = availableEmployee();
+				if (employee != null && !waitingCalls.isEmpty()) {
+					Call call = waitingCalls.poll();
+					System.out.println("ID" + Thread.currentThread().getId() + ", EMPLOYEE-" + employee.getName());
+					System.out.println("ID" + Thread.currentThread().getId() + ", CALL-" + call.getCaller());
+					employee.handleCall(call);
+				}
+			} catch (InterruptedException e) {
+				throw new RuntimeException("Dispatch Call Excpetion");
+			}
+			return;
 		};
-		
-		// Assigning  the task to each thread
-		ExecutorService executorService = Executors.newFixedThreadPool(10);
-		for(int i = 0; i < 6; i++){   
+
+		// Assigning the task to each thread
+		ExecutorService executorService = Executors.newFixedThreadPool(DISPATCHER_THREADS);
+		for (int i = 0; i < DISPATCHER_THREADS; i++) {
 			executorService.execute(runnable);
 		}
 		executorService.shutdown();
+		
+		// Waiting for all thread to end, allowing tests to check end conditions
+		try {
+			executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 	
+	// Returns the first lowest ranking available employee or NULL otherwise 
 	public Employee availableEmployee() throws InterruptedException {
 		semaphore.acquire();
-		for (Employee operator : operators) {
-			System.out.println("ID" + Thread.currentThread().getId() + ", Finding operator, operator " + operator.getName() + "...available: " + operator.isFree() );
-			if ( operator.isFree() ) {
-				operator.makeUnavailable();
-				semaphore.release(); 
-				return operator; 
-			}
+		Optional<Employee> operatorOptional = employees.stream()
+													   .filter(x -> x.isFree() && x.getEmployeeType().equals(EmployeeType.OPERATOR))
+													   .findFirst();
+		if ( operatorOptional.isPresent() ) {
+			Employee operator = operatorOptional.get();
+			System.out.println("ID" + Thread.currentThread().getId() + ", Operator Available : " + operator.getName());
+			operator.makeUnavailable();
+			semaphore.release(); 
+			return operator; 
 		}
-		for (Employee supervisor : supervisors) {
-			System.out.println("ID" + Thread.currentThread().getId() + ", Finding supervisor, supervisor " + supervisor.getName() + "...available: " + supervisor.isFree() );
-			if ( supervisor.isFree() ) { 
-				supervisor.makeUnavailable();
-				semaphore.release(); 
-				return supervisor;  
-			}
+		Optional<Employee> supervisorOptional = employees.stream()
+														   .filter(x -> x.isFree() && x.getEmployeeType().equals(EmployeeType.SUPERVISOR))
+														   .findFirst();
+		if ( supervisorOptional.isPresent() ) {
+			Employee supervisor = supervisorOptional.get();
+			System.out.println("ID" + Thread.currentThread().getId() + ", Supervisor Available : " + supervisor.getName());
+			supervisor.makeUnavailable();
+			semaphore.release(); 
+			return supervisor; 
 		}
-		for (Employee director: directors) {
-			System.out.println("ID" + Thread.currentThread().getId() + ",Finding director, director " + director.getName() + "...available: " + director.isFree() );
-			if ( director.isFree() ) { 
-				director.makeUnavailable();
-				semaphore.release(); 
-				return director;   
-			}
+		Optional<Employee> directorOptional = employees.stream()
+													   .filter(x -> x.isFree() && x.getEmployeeType().equals(EmployeeType.DIRECTOR))
+													   .findFirst();
+		if ( directorOptional.isPresent() ) {
+			Employee director = directorOptional.get();
+			System.out.println("ID" + Thread.currentThread().getId() + ", Supervisor Available : " + director.getName());
+			director.makeUnavailable();
+			semaphore.release(); 
+			return director; 
 		}
-		//throw new RuntimeErrorException(null, "No emplyee available");
 		semaphore.release();
 		return null;
-	}
-	
-	
-	public void printEmployeeArray(List<? extends Employee> employees) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("ID" + Thread.currentThread().getId() + ", ");
-		for (Employee employee : employees) {
-			sb.append(employee.getName());
-			sb.append(" - ");
-			sb.append("Free: ");
-			sb.append(employee.isFree() + ", ");
-		}
-		System.out.println(sb.toString());
 	}
 }

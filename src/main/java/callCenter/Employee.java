@@ -3,18 +3,19 @@ package callCenter;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
-public abstract class Employee {
+public class Employee {
 	
 	private String name;
-	
+	private EmployeeType employeeType;
 	private boolean free;
 	
-	public Employee(String name) {
+	public Employee(String name, EmployeeType employeeType) {
 		this.name = name;
 		this.free = true;
+		this.employeeType = employeeType;
 	}
 	
-	public synchronized boolean isFree() {
+	public boolean isFree() {
 		return free;
 	}
 	
@@ -22,15 +23,22 @@ public abstract class Employee {
 		return name;
 	}
 	
-	public synchronized void makeUnavailable( ) { free = false; }
+	public EmployeeType getEmployeeType() {
+		return employeeType;
+	}
 
-	public synchronized void makeAvailable( ) { free = true; }
+	public void setEmployeeType(EmployeeType employeeType) {
+		this.employeeType = employeeType;
+	}
+
+	public void makeUnavailable( ) { free = false; }
+
+	public void makeAvailable( ) { free = true; }
 	
 	public void handleCall(Call call) throws InterruptedException {
 		int callDuration = call.getCallDuration();
 		System.out.println("ID" + Thread.currentThread().getId() + ", Calling in progress" + String.join("", Collections.nCopies(callDuration, ".")));
-		//System.out.println(greetingMessage + call.getCaller() + " how can i help you with " + call.getSubject());
 		TimeUnit.SECONDS.sleep(callDuration);
-		//this.makeAvailable();
+		this.makeAvailable();
 	}
 }
