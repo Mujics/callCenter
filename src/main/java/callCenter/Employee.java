@@ -37,7 +37,7 @@ public class Employee {
 	
 	public void handleCall(Call call) throws InterruptedException {
 		int callDuration = call.getCallDuration();
-		System.out.println("ID" + Thread.currentThread().getId() + ", Calling in progress" + String.join("", Collections.nCopies(callDuration, ".")));
+		System.out.println("Thread: " + Thread.currentThread().getId() + ", Calling in progress" + String.join("", Collections.nCopies(callDuration, ".")));
 		TimeUnit.SECONDS.sleep(callDuration);
 		this.makeAvailable();
 	}

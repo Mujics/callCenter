@@ -68,8 +68,7 @@ public class Dispatcher {
 				Employee employee = availableEmployee();
 				if (employee != null && !waitingCalls.isEmpty()) {
 					Call call = waitingCalls.poll();
-					System.out.println("ID" + Thread.currentThread().getId() + ", EMPLOYEE-" + employee.getName());
-					System.out.println("ID" + Thread.currentThread().getId() + ", CALL-" + call.getCaller());
+					System.out.println("Thread: " + Thread.currentThread().getId() + ", EMPLOYEE: " + employee.getName() + " - CALLER: " + call.getCaller());
 					employee.handleCall(call);
 				}
 			} catch (InterruptedException e) {
@@ -101,7 +100,6 @@ public class Dispatcher {
 													   .findFirst();
 		if ( operatorOptional.isPresent() ) {
 			Employee operator = operatorOptional.get();
-			System.out.println("ID" + Thread.currentThread().getId() + ", Operator Available : " + operator.getName());
 			operator.makeUnavailable();
 			semaphore.release(); 
 			return operator; 
@@ -111,7 +109,6 @@ public class Dispatcher {
 														   .findFirst();
 		if ( supervisorOptional.isPresent() ) {
 			Employee supervisor = supervisorOptional.get();
-			System.out.println("ID" + Thread.currentThread().getId() + ", Supervisor Available : " + supervisor.getName());
 			supervisor.makeUnavailable();
 			semaphore.release(); 
 			return supervisor; 
@@ -121,7 +118,6 @@ public class Dispatcher {
 													   .findFirst();
 		if ( directorOptional.isPresent() ) {
 			Employee director = directorOptional.get();
-			System.out.println("ID" + Thread.currentThread().getId() + ", Supervisor Available : " + director.getName());
 			director.makeUnavailable();
 			semaphore.release(); 
 			return director; 
